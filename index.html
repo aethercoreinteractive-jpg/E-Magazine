@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">THE CHRONICLE — Vol. 01 | Our Journey</title>
+    
+    <!-- Google Fonts: Editorial Serif + Clean Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['Newsreader', 'Georgia', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        editorial: {
+                            bg: '#0F1113',
+                            surface: '#16191D',
+                            card: '#1D2127',
+                            border: '#2C323C',
+                            text: '#E5E7EB',
+                            muted: '#9CA3AF',
+                            accent: '#D4AF37', // Muted gold
+                            terracotta: '#C86D51',
+                            cream: '#F9F8F6'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Leaflet CSS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Custom Editorial Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0F1113; }
+        ::-webkit-scrollbar-thumb { background: #2C323C; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #C86D51; }
+
+        body {
+            background-color: #0F1113;
+            color: #E5E7EB;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .serif-title {
+            font-family: 'Newsreader', Georgia, serif;
+        }
+
+        /* Editorial drop cap */
+        .drop-cap::first-letter {
+            font-family: 'Newsreader', Georgia, serif;
+            float: left;
+            font-size: 3.8rem;
+            line-height: 0.8;
+            padding-top: 4px;
+            padding-right: 12px;
+            padding-bottom: 0;
+            color: #C86D51;
+            font-weight: 400;
+        }
+
+        /* Image hover zoom transitions */
+        .img-zoom {
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .group:hover .img-zoom {
+            transform: scale(1.05);
+        }
+
+        /* Modal backdrop blur */
+        .modal-blur {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Leaflet Dark Theme Overrides */
+        .leaflet-layer, .leaflet-control-zoom-in, .leaflet-control-zoom-out, .leaflet-attribution-await {
+            filter: brightness(0.8) invert(1) contrast(3) hue-rotate(200deg);
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-editorial-terracotta selection:text-white">
+
+    <!-- ==========================================
+         PASSWORD PROTECTION OVERLAY
+         ========================================== -->
+    <div id="auth-screen" class="fixed inset-0 z-50 bg-[#0A0C0E] flex items-center justify-center px-4 transition-opacity duration-700">
+        <div class="max-w-md w-full bg-editorial-surface border border-editorial-border p-8 md:p-10 shadow-2xl relative">
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-editorial-terracotta via-editorial-accent to-editorial-terracotta"></div>
+            
+            <div class="text-center mb-8">
+                <span class="text-xs uppercase tracking-[0.3em] text-editorial-accent mb-2 block font-medium">Private Publication</span>
+                <h1 id="auth-magazine-title" class="serif-title text-3xl md:text-4xl font-light text-white tracking-wide">THE CHRONICLE</h1>
+                <p class="text-xs text-editorial-muted mt-2 tracking-widest uppercase">Vol. 01 • Confidential Archives</p>
+            </div>
+
+            <form id="auth-form" onsubmit="handleLogin(event)" class="space-y-6">
+                <div class="relative">
+                    <label class="block text-xs uppercase tracking-wider text-editorial-muted mb-2">Access Key</label>
+                    <div class="relative">
+                        <input type="password" id="auth-password" required placeholder="Enter password" 
+                            class="w-full bg-editorial-bg border border-editorial-border px-4 py-3 text-white placeholder-editorial-muted/50 text-sm focus:outline-none focus:border-editorial-terracotta transition-colors pr-12">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-editorial-muted hover:text-white text-sm">
+                            <i id="eye-icon" class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    <p id="auth-error" class="text-editorial-terracotta text-xs mt-2 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i> Incorrect password. Please try again.</p>
+                </div>
+
+                <button type="submit" class="w-full bg-editorial-terracotta hover:bg-[#b05c43] text-white py-3.5 text-xs uppercase tracking-[0.2em] font-semibold transition-all shadow-lg">
+                    Unlock Magazine
+                </button>
+            </form>
+
+            <div class="mt-8 pt-6 border-t border-editorial-border/60 text-center">
+                <p class="text-[11px] text-editorial-muted/70 tracking-wider">SECURE DIGITAL ARCHIVE FOR OUR LIFETIME JOURNEY</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MAIN MAGAZINE WRAPPER (Hidden until auth)
+         ========================================== -->
+    <div id="magazine-app" class="hidden min-h-screen flex flex-col">
+
+        <!-- READING PROGRESS BAR -->
+        <div class="fixed top-0 left-0 right-0 h-[3px] bg-transparent z-40">
+            <div id="read-progress" class="h-full bg-editorial-terracotta w-0 transition-all duration-150"></div>
+        </div>
+
+        <!-- ==========================================
+             MAGAZINE HEADER & MASTHEAD
+             ========================================== -->
+        <header id="masthead" class="sticky top-0 z-30 bg-editorial-bg/90 modal-blur border-b border-editorial-border transition-all duration-300">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                
+                <!-- Left: Issue Meta & Search trigger -->
+                <div class="flex items-center space-x-6">
+                    <button onclick="openSearchModal()" class="text-editorial-muted hover:text-white transition-colors flex items-center space-x-2 text-xs uppercase tracking-widest">
+                        <i class="fa-solid fa-magnifying-glass text-editorial-terracotta"></i>
+                        <span class="hidden sm:inline">Search</span>
+                    </button>
+                    <div class="hidden md:block h-4 w-[1px] bg-editorial-border"></div>
+                    <span id="header-issue-meta" class="hidden md:inline-block text-[11px] uppercase tracking-[0.2em] text-editorial-muted">Vol. 01 • No. 2026</span>
+                </div>
+
+                <!-- Center: Magazine Title -->
+                <div class="text-center absolute left-1/2 -translate-x-1/2">
+                    <a href="#cover" class="block">
+                        <h2 id="brand-title" class="serif-title text-xl sm:text-2xl md:text-3xl font-normal tracking-wider text-white">THE CHRONICLE</h2>
+                    </a>
+                </div>
+
+                <!-- Right: Navigation drawer toggle & Settings gear -->
+                <div class="flex items-center space-x-4 sm:space-x-6">
+                    <button onclick="openCmsModal()" class="hidden sm:flex items-center space-x-1.5 text-xs uppercase tracking-wider bg-editorial-surface border border-editorial-border px-3 py-1.5 text-editorial-accent hover:border-editorial-accent transition-colors">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Add Entry</span>
+                    </button>
+                    <button onclick="openSettingsModal()" class="text-editorial-muted hover:text-editorial-accent transition-colors p-2 text-lg" title="Settings">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <button onclick="toggleMobileNav()" class="text-white hover:text-editorial-terracotta md:hidden p-2 text-xl">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Subheader Nav Bar -->
+            <nav class="hidden md:block bg-editorial-surface/60 border-t border-editorial-border/40 py-2.5 px-6">
+                <ul class="flex items-center justify-center space-x-8 text-xs uppercase tracking-[0.18em] text-editorial-muted overflow-x-auto whitespace-nowrap scrollbar-none">
+                    <li><a href="#story" class="hover:text-white transition-colors">Our Story</a></li>
+                    <li><a href="#timeline" class="hover:text-white transition-colors">Timeline</a></li>
+                    <li><a href="#travel" class="hover:text-white transition-colors">Travel</a></li>
+                    <li><a href="#map" class="hover:text-white transition-colors">Map</a></li>
+                    <li><a href="#gallery" class="hover:text-white transition-colors">Gallery</a></li>
+                    <li><a href="#letters" class="hover:text-white transition-colors">Letters</a></li>
+                    <li><a href="#playlist" class="hover:text-white transition-colors">Soundtrack</a></li>
+                    <li><a href="#archive" class="hover:text-white transition-colors">Archive</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <!-- Mobile Navigation Drawer -->
+        <div id="mobile-nav" class="fixed inset-0 z-50 bg-black/80 modal-blur hidden flex flex-col justify-center items-center px-6 transition-opacity">
+            <button onclick="toggleMobileNav()" class="absolute top-6 right-6 text-2xl text-editorial-muted hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center space-y-6 text-lg uppercase tracking-[0.2em] font-light">
+                <a href="#story" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Our Story</a>
+                <a href="#timeline" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Timeline</a>
+                <a href="#travel" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Travel Diaries</a>
+                <a href="#map" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Interactive Map</a>
+                <a href="#gallery" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Photography Gallery</a>
+                <a href="#adventures" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Adventures</a>
+                <a href="#moments" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Little Moments</a>
+                <a href="#celebrations" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Celebrations</a>
+                <a href="#dates" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Date Nights</a>
+                <a href="#letters" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Letters & Words</a>
+                <a href="#playlist" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Soundtrack</a>
+                <a href="#food" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Food Chronicles</a>
+                <a href="#milestones" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Milestones</a>
+                <a href="#bts" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Behind The Scenes</a>
+                <a href="#people" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">People Around Us</a>
+                <a href="#bucketlist" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Bucket List</a>
+                <a href="#thenandnow" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Then & Now</a>
+                <a href="#archive" onclick="toggleMobileNav()" class="block hover:text-editorial-terracotta">Full Archive</a>
+            </div>
+            <div class="mt-8">
+                <button onclick="toggleMobileNav(); openCmsModal();" class="text-xs uppercase tracking-widest bg-editorial-terracotta text-white px-6 py-3">
+                    <i class="fa-solid fa-plus mr-2"></i> Add New Memory
+                </button>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             MAIN CONTENT SECTIONS (18 Distinct Layouts)
+             ========================================== -->
+        <main class="flex-grow">
+
+            <!-- SECTION 1: THE COVER -->
+            <section id="cover" class="relative min-h-[92vh] flex flex-col justify-between px-4 sm:px-8 lg:px-16 py-12 border-b border-editorial-border overflow-hidden">
+                <div class="absolute inset-0 z-0">
+                    <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=2000&q=85" alt="Cover Hero" class="w-full h-full object-cover opacity-35 img-zoom">
+                    <div class="absolute inset-0 bg-gradient-to-t from-editorial-bg via-editorial-bg/60 to-transparent"></div>
+                </div>
+
+                <div class="relative z-10 flex justify-between items-start">
+                    <div>
+                        <span id="cover-vol" class="text-xs uppercase tracking-[0.3em] text-editorial-accent font-semibold block mb-1">Volume 01 — Special Edition</span>
+                        <span id="cover-date" class="text-xs text-editorial-muted tracking-widest uppercase">Est. Forever</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs uppercase tracking-[0.3em] text-editorial-terracotta font-semibold">The Couple's Monograph</span>
+                    </div>
+                </div>
+
+                <div class="relative z-10 my-16 max-w-4xl">
+                    <h1 id="cover-main-title" class="serif-title text-5xl sm:text-7xl md:text-8xl font-light text-white tracking-tight leading-[1.05] mb-6">
+                        Two Lives, <br><span class="italic text-editorial-terracotta font-serif">One Masterpiece.</span>
+                    </h1>
+                    <p class="text-lg sm:text-xl text-editorial-muted max-w-xl font-light leading-relaxed">
+                        An intimate, luxury editorial documentation of everywhere we've traveled, the milestones we've conquered, and the quiet magic we share every single day.
+                    </p>
+                </div>
+
+                <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-end border-t border-editorial-border/60 pt-6 gap-4">
+                    <div class="flex items-center space-x-4">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span class="text-xs uppercase tracking-widest text-editorial-muted">Live Archive Active • Updated 2026</span>
+                    </div>
+                    <a href="#story" class="inline-flex items-center space-x-3 text-xs uppercase tracking-[0.2em] text-white hover:text-editorial-terracotta transition-colors group">
+                        <span>Begin Reading</span>
+                        <i class="fa-solid fa-arrow-down-long transform group-hover:translate-y-1 transition-transform"></i>
+                    </a>
+                </div>
+            </section>
+
+
+            <!-- SECTION 2: EDITORS NOTE & OUR STORY -->
+            <section id="story" class="py-24 px-4 sm:px-8 lg:px-16 border-b border-editorial-border">
+                <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                    <div class="lg:col-span-5 space-y-6">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold">Editorial Feature</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white leading-tight">How Our Universe Collided</h2>
+                        <div class="w-16 h-[1px] bg-editorial-accent"></div>
+                        <p class="text-editorial-muted text-sm sm:text-base leading-relaxed">
+                            It began with an unexpected notification—a simple digital hello that bridged two separate worlds. What started as casual conversation swiftly blossomed into a profound connection built on shared laughter, late-night philosophical musings, and an undeniable pull toward each other.
+                        </p>
+                        <blockquote class="border-l-2 border-editorial-terracotta pl-4 italic text-white font-serif text-lg py-2">
+                            "Some people simply walk into your life and instantly feel like home."
+                        </blockquote>
+                    </div>
+                    <div class="lg:col-span-7 grid grid-cols-2 gap-4">
+                        <div class="space-y-4">
+                            <img src="https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=800&q=80" alt="Story 1" class="w-full h-72 object-cover img-zoom border border-editorial-border">
+                            <p class="text-xs text-editorial-muted italic text-center">First spontaneous meeting, 2024.</p>
+                        </div>
+                        <div class="space-y-4 pt-12">
+                            <img src="https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80" alt="Story 2" class="w-full h-80 object-cover img-zoom border border-editorial-border">
+                            <p class="text-xs text-editorial-muted italic text-center">Unforgettable sunset walks.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 3: THE TIMELINE -->
+            <section id="timeline" class="py-24 px-4 sm:px-8 lg:px-16 bg-editorial-surface/30 border-b border-editorial-border">
+                <div class="max-w-4xl mx-auto">
+                    <div class="text-center mb-16">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Chronological Record</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">The Journey Timeline</h2>
+                    </div>
+
+                    <div class="relative border-l border-editorial-border ml-4 sm:ml-32 space-y-12">
+                        <!-- Timeline Item 1 -->
+                        <div class="relative pl-8 sm:pl-12 group">
+                            <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-editorial-terracotta ring-4 ring-editorial-bg"></div>
+                            <span class="absolute -left-28 top-1 hidden sm:block text-xs uppercase tracking-widest text-editorial-muted font-mono">Oct 2023</span>
+                            <div class="bg-editorial-card border border-editorial-border p-6 hover:border-editorial-terracotta/60 transition-colors">
+                                <span class="text-[11px] uppercase tracking-widest text-editorial-accent mb-1 block sm:hidden">Oct 2023</span>
+                                <h3 class="serif-title text-2xl text-white mb-2">The First Message</h3>
+                                <p class="text-editorial-muted text-sm leading-relaxed">A random ping that changed the course of our lives forever. Hours of seamless conversation followed.</p>
+                            </div>
+                        </div>
+
+                        <!-- Timeline Item 2 -->
+                        <div class="relative pl-8 sm:pl-12 group">
+                            <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-editorial-accent ring-4 ring-editorial-bg"></div>
+                            <span class="absolute -left-28 top-1 hidden sm:block text-xs uppercase tracking-widest text-editorial-muted font-mono">Jan 2024</span>
+                            <div class="bg-editorial-card border border-editorial-border p-6 hover:border-editorial-accent/60 transition-colors">
+                                <span class="text-[11px] uppercase tracking-widest text-editorial-accent mb-1 block sm:hidden">Jan 2024</span>
+                                <h3 class="serif-title text-2xl text-white mb-2">First In-Person Encounter</h3>
+                                <p class="text-editorial-muted text-sm leading-relaxed">Stepping out of the screen and into reality. Instant chemistry, endless coffee, and the start of real-world memories.</p>
+                            </div>
+                        </div>
+
+                        <!-- Timeline Item 3 -->
+                        <div class="relative pl-8 sm:pl-12 group">
+                            <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-editorial-terracotta ring-4 ring-editorial-bg"></div>
+                            <span class="absolute -left-28 top-1 hidden sm:block text-xs uppercase tracking-widest text-editorial-muted font-mono">Aug 2025</span>
+                            <div class="bg-editorial-card border border-editorial-border p-6 hover:border-editorial-terracotta/60 transition-colors">
+                                <span class="text-[11px] uppercase tracking-widest text-editorial-accent mb-1 block sm:hidden">Aug 2025</span>
+                                <h3 class="serif-title text-2xl text-white mb-2">Our First Major Trip Together</h3>
+                                <p class="text-editorial-muted text-sm leading-relaxed">Navigating foreign cities, missing trains, laughing through thunderstorms, and discovering we travel together like second nature.</p>
+                            </div>
+                        </div>
+
+                        <!-- Timeline Item 4 -->
+                        <div class="relative pl-8 sm:pl-12 group">
+                            <div class="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-white ring-4 ring-editorial-bg"></div>
+                            <span class="absolute -left-28 top-1 hidden sm:block text-xs uppercase tracking-widest text-editorial-accent font-mono font-semibold">2026 & Beyond</span>
+                            <div class="bg-editorial-card border border-editorial-accent/40 p-6 shadow-lg">
+                                <span class="text-[11px] uppercase tracking-widest text-editorial-accent mb-1 block sm:hidden">2026 & Beyond</span>
+                                <h3 class="serif-title text-2xl text-white mb-2">Building Our Empire</h3>
+                                <p class="text-editorial-muted text-sm leading-relaxed">Creating projects, sharing daily wins, planning our future, and archiving every single chapter in this digital monument.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 4: TRAVEL DIARIES -->
+            <section id="travel" class="py-24 px-4 sm:px-8 lg:px-16 border-b border-editorial-border">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-16">
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Wanderlust Journals</span>
+                            <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">Travel Diaries</h2>
+                        </div>
+                        <p class="text-editorial-muted text-sm max-w-md mt-4 md:mt-0">Every city, coastal escape, mountain retreat, and hidden alleyway we've explored hand in hand.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <!-- Travel Card 1 -->
+                        <div class="group bg-editorial-surface border border-editorial-border overflow-hidden">
+                            <div class="h-72 overflow-hidden relative">
+                                <img src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80" alt="Paris" class="w-full h-full object-cover img-zoom">
+                                <div class="absolute top-4 left-4 bg-editorial-bg/80 modal-blur px-3 py-1 text-[10px] uppercase tracking-widest text-editorial-accent">Europe</div>
+                            </div>
+                            <div class="p-6 space-y-3">
+                                <span class="text-xs text-editorial-muted uppercase tracking-wider">Autumn • 2025</span>
+                                <h3 class="serif-title text-2xl text-white">Parisian Evenings</h3>
+                                <p class="text-editorial-muted text-sm leading-relaxed">Cafes along the Seine, midnight strolls past glowing architecture, and endless pastries.</p>
+                            </div>
+                        </div>
+
+                        <!-- Travel Card 2 -->
+                        <div class="group bg-editorial-surface border border-editorial-border overflow-hidden">
+                            <div class="h-72 overflow-hidden relative">
+                                <img src="https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80" alt="Bali" class="w-full h-full object-cover img-zoom">
+                                <div class="absolute top-4 left-4 bg-editorial-bg/80 modal-blur px-3 py-1 text-[10px] uppercase tracking-widest text-editorial-accent">Asia-Pacific</div>
+                            </div>
+                            <div class="p-6 space-y-3">
+                                <span class="text-xs text-editorial-muted uppercase tracking-wider">Summer • 2025</span>
+                                <h3 class="serif-title text-2xl text-white">Tropical Sanctuaries</h3>
+                                <p class="text-editorial-muted text-sm leading-relaxed">Emerald rice terraces, torrential monsoon rains, and quiet villa mornings.</p>
+                            </div>
+                        </div>
+
+                        <!-- Travel Card 3 -->
+                        <div class="group bg-editorial-surface border border-editorial-border overflow-hidden">
+                            <div class="h-72 overflow-hidden relative">
+                                <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80" alt="Mountains" class="w-full h-full object-cover img-zoom">
+                                <div class="absolute top-4 left-4 bg-editorial-bg/80 modal-blur px-3 py-1 text-[10px] uppercase tracking-widest text-editorial-accent">Highlands</div>
+                            </div>
+                            <div class="p-6 space-y-3">
+                                <span class="text-xs text-editorial-muted uppercase tracking-wider">Winter • 2024</span>
+                                <h3 class="serif-title text-2xl text-white">Mist & Mountain Peaks</h3>
+                                <p class="text-editorial-muted text-sm leading-relaxed">Crisp alpine air, hot chocolate by the fireplace, and starlit night skies.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 5: PLACES WE'VE BEEN (INTERACTIVE MAP) -->
+            <section id="map" class="py-24 px-4 sm:px-8 lg:px-16 bg-editorial-surface/30 border-b border-editorial-border">
+                <div class="max-w-7xl mx-auto">
+                    <div class="text-center mb-12">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Geographic Footprint</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">Places We've Explored</h2>
+                        <p class="text-editorial-muted text-sm mt-2 max-w-lg mx-auto">Interactive coordinate tracking of our shared destinations across the globe.</p>
+                    </div>
+
+                    <div class="bg-editorial-card border border-editorial-border p-4 shadow-2xl">
+                        <div id="leaflet-map" class="w-full h-[500px] rounded"></div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 6: OUR ADVENTURES -->
+            <section id="adventures" class="py-24 px-4 sm:px-8 lg:px-16 border-b border-editorial-border">
+                <div class="max-w-6xl mx-auto">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Spontaneous Thrills</span>
+                            <h2 class="serif-title text-4xl sm:text-5xl font-light text-white mb-6">Unplanned Adventures & Wild Detours</h2>
+                            <p class="text-editorial-muted text-sm sm:text-base leading-relaxed mb-6">
+                                The best memories are never written on an itinerary. From getting lost in unfamiliar cobblestone alleys to impromptu midnight road trips under full moons, our greatest stories stem from saying yes to the unexpected.
+                            </p>
+                            <ul class="space-y-3 text-sm text-editorial-text font-light">
+                                <li class="flex items-center space-x-3"><i class="fa-solid fa-check text-editorial-accent"></i><span>Driving 4 hours just to watch sunrise at the coast.</span></li>
+                                <li class="flex items-center space-x-3"><i class="fa-solid fa-check text-editorial-accent"></i><span>Cooking midnight pasta disasters that tasted like Michelin stars.</span></li>
+                                <li class="flex items-center space-x-3"><i class="fa-solid fa-check text-editorial-accent"></i><span>Surviving unexpected downpours with zero umbrellas.</span></li>
+                            </ul>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=600&q=80" alt="Adventure 1" class="w-full h-64 object-cover img-zoom border border-editorial-border">
+                            <img src="https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&w=600&q=80" alt="Adventure 2" class="w-full h-64 object-cover img-zoom border border-editorial-border mt-8">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 7: THE GALLERY -->
+            <section id="gallery" class="py-24 px-4 sm:px-8 lg:px-16 bg-editorial-surface/20 border-b border-editorial-border">
+                <div class="max-w-7xl mx-auto">
+                    <div class="text-center mb-16">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Visual Monograph</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">The Photography Gallery</h2>
+                    </div>
+
+                    <div id="dynamic-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                        <!-- Populated dynamically via JS / CMS -->
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 8: THE LITTLE MOMENTS -->
+            <section id="moments" class="py-24 px-4 sm:px-8 lg:px-16 border-b border-editorial-border">
+                <div class="max-w-5xl mx-auto text-center">
+                    <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Quiet Magic</span>
+                    <h2 class="serif-title text-4xl sm:text-5xl font-light text-white mb-12">The Little Everyday Moments</h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 text-left">
+                        <div class="bg-editorial-card p-6 border border-editorial-border">
+                            <span class="text-editorial-accent text-xs uppercase tracking-widest block mb-2">01. Mornings</span>
+                            <h3 class="serif-title text-xl text-white mb-2">Coffee & Quiet Chats</h3>
+                            <p class="text-editorial-muted text-xs leading-relaxed">The peaceful hours before the world wakes up, sharing hot brews and soft laughter.</p>
+                        </div>
+                        <div class="bg-editorial-card p-6 border border-editorial-border">
+                            <span class="text-editorial-accent text-xs uppercase tracking-widest block mb-2">02. Evenings</span>
+                            <h3 class="serif-title text-xl text-white mb-2">Long Drive Playlists</h3>
+                            <p class="text-editorial-muted text-xs leading-relaxed">Singing off-key to favourite albums with windows down on empty highways.</p>
+                        </div>
+                        <div class="bg-editorial-card p-6 border border-editorial-border">
+                            <span class="text-editorial-accent text-xs uppercase tracking-widest block mb-2">03. Sundays</span>
+                            <h3 class="serif-title text-xl text-white mb-2">Doing Absolutely Nothing</h3>
+                            <p class="text-editorial-muted text-xs leading-relaxed">Lazy afternoons curled up watching films with nowhere else to be.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 9: CELEBRATIONS -->
+            <section id="celebrations" class="py-24 px-4 sm:px-8 lg:px-16 bg-editorial-surface/30 border-b border-editorial-border">
+                <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                    <div class="order-2 md:order-1">
+                        <img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1000&q=80" alt="Celebration" class="w-full h-96 object-cover border border-editorial-border img-zoom">
+                    </div>
+                    <div class="order-1 md:order-2 space-y-6">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold">Milestone Festivities</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">Birthdays, Anniversaries & Festivals</h2>
+                        <p class="text-editorial-muted text-sm sm:text-base leading-relaxed">
+                            Every milestone is a reason to pause and celebrate the beauty of our journey. From candlelit dinners on anniversaries to surprise birthday setups, we cherish every joyous gathering.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 10: OUR DATES -->
+            <section id="dates" class="py-24 px-4 sm:px-8 lg:px-16 border-b border-editorial-border">
+                <div class="max-w-5xl mx-auto">
+                    <div class="text-center mb-16">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Outings & Gatherings</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">Our Signature Dates</h2>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                        <div class="bg-editorial-card p-8 border border-editorial-border flex items-start space-x-6">
+                            <span class="text-3xl text-editorial-terracotta font-serif">01</span>
+                            <div>
+                                <h3 class="serif-title text-2xl text-white mb-2">Hidden Bookstore Cafes</h3>
+                                <p class="text-editorial-muted text-sm leading-relaxed">Spending hours browsing antique book spines and sipping iced lattes in quiet corners.</p>
+                            </div>
+                        </div>
+                        <div class="bg-editorial-card p-8 border border-editorial-border flex items-start space-x-6">
+                            <span class="text-3xl text-editorial-terracotta font-serif">02</span>
+                            <div>
+                                <h3 class="serif-title text-2xl text-white mb-2">Midnight Cinema Screenings</h3>
+                                <p class="text-editorial-muted text-sm leading-relaxed">Late-night movie marathons with endless snacks and shared blankets.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 11: LETTERS & WORDS -->
+            <section id="letters" class="py-24 px-4 sm:px-8 lg:px-16 bg-editorial-surface/30 border-b border-editorial-border">
+                <div class="max-w-3xl mx-auto text-center">
+                    <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Personal Epistles</span>
+                    <h2 class="serif-title text-4xl sm:text-5xl font-light text-white mb-12">Letters & Meaningful Words</h2>
+
+                    <div class="bg-editorial-card border border-editorial-border p-8 sm:p-12 text-left relative shadow-xl">
+                        <div class="absolute top-6 right-6 text-editorial-accent/20 text-6xl serif-title">“</div>
+                        <span class="text-xs uppercase tracking-widest text-editorial-muted block mb-4">From My Journal • 2026</span>
+                        <p class="serif-title text-xl sm:text-2xl text-white italic leading-relaxed mb-6">
+                            "If I had to live my life over again, I’d find you sooner so that I could love you longer. Thank you for being my anchor in every storm and my brightest sunshine."
+                        </p>
+                        <p class="text-xs uppercase tracking-[0.2em] text-editorial-terracotta font-semibold">— Always & Forever</p>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 12: THE PLAYLIST -->
+            <section id="playlist" class="py-24 px-4 sm:px-8 lg:px-16 border-b border-editorial-border">
+                <div class="max-w-5xl mx-auto">
+                    <div class="text-center mb-16">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Sonic Memories</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">The Soundtrack of Us</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div class="bg-editorial-surface border border-editorial-border p-6 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-editorial-terracotta flex items-center justify-center text-white text-lg"><i class="fa-solid fa-music"></i></div>
+                            <div>
+                                <h4 class="text-white font-medium text-sm">Golden Hour</h4>
+                                <p class="text-editorial-muted text-xs">JVKE</p>
+                            </div>
+                        </div>
+                        <div class="bg-editorial-surface border border-editorial-border p-6 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-editorial-accent flex items-center justify-center text-black text-lg"><i class="fa-solid fa-music"></i></div>
+                            <div>
+                                <h4 class="text-white font-medium text-sm">Cardigan</h4>
+                                <p class="text-editorial-muted text-xs">Taylor Swift</p>
+                            </div>
+                        </div>
+                        <div class="bg-editorial-surface border border-editorial-border p-6 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-editorial-terracotta flex items-center justify-center text-white text-lg"><i class="fa-solid fa-music"></i></div>
+                            <div>
+                                <h4 class="text-white font-medium text-sm">Die For You</h4>
+                                <p class="text-editorial-muted text-xs">The Weeknd</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 13: FOOD CHRONICLES -->
+            <section id="food" class="py-24 px-4 sm:px-8 lg:px-16 bg-editorial-surface/30 border-b border-editorial-border">
+                <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Culinary Escapades</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white mb-6">Food Chronicles</h2>
+                        <p class="text-editorial-muted text-sm sm:text-base leading-relaxed">
+                            From rustic street food stalls in bustling night markets to exquisite candlelit dinners, our culinary journey is a testament to our shared love for great flavors and unforgettable dining experiences.
+                        </p>
+                    </div>
+                    <div>
+                        <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1000&q=80" alt="Food" class="w-full h-80 object-cover border border-editorial-border img-zoom">
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 14: MILESTONES -->
+            <section id="milestones" class="py-24 px-4 sm:px-8 lg:px-16 border-b border-editorial-border">
+                <div class="max-w-5xl mx-auto text-center">
+                    <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Major Triumphs</span>
+                    <h2 class="serif-title text-4xl sm:text-5xl font-light text-white mb-16">Relationship Milestones</h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                        <div class="border border-editorial-border p-8 bg-editorial-surface">
+                            <span class="serif-title text-4xl text-editorial-accent block mb-2">1,000+</span>
+                            <h3 class="text-white text-sm font-semibold uppercase tracking-wider mb-1">Days Together</h3>
+                            <p class="text-editorial-muted text-xs">Counting every single moment of joy.</p>
+                        </div>
+                        <div class="border border-editorial-border p-8 bg-editorial-surface">
+                            <span class="serif-title text-4xl text-editorial-terracotta block mb-2">15+</span>
+                            <h3 class="text-white text-sm font-semibold uppercase tracking-wider mb-1">Cities Explored</h3>
+                            <p class="text-editorial-muted text-xs">Across countries and continents.</p>
+                        </div>
+                        <div class="border border-editorial-border p-8 bg-editorial-surface">
+                            <span class="serif-title text-4xl text-white block mb-2">∞</span>
+                            <h3 class="text-white text-sm font-semibold uppercase tracking-wider mb-1">Memories Made</h3>
+                            <p class="text-editorial-muted text-xs">And countless more awaiting us.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 15: BEHIND THE SCENES -->
+            <section id="bts" class="py-24 px-4 sm:px-8 lg:px-16 bg-editorial-surface/30 border-b border-editorial-border">
+                <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                    <div>
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1000&q=80" alt="BTS" class="w-full h-80 object-cover border border-editorial-border img-zoom">
+                    </div>
+                    <div class="space-y-6">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold">Candid Bloopers</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">Behind The Scenes</h2>
+                        <p class="text-editorial-muted text-sm sm:text-base leading-relaxed">
+                            Not every photo is picture-perfect. For every polished portrait, there are fifty blurry laughs, silly facial expressions, and candid moments that truly define who we are when nobody else is watching.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 16: THE PEOPLE AROUND US -->
+            <section id="people" class="py-24 px-4 sm:px-8 lg:px-16 border-b border-editorial-border">
+                <div class="max-w-5xl mx-auto text-center">
+                    <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Circle of Joy</span>
+                    <h2 class="serif-title text-4xl sm:text-5xl font-light text-white mb-6">The People Around Us</h2>
+                    <p class="text-editorial-muted text-sm max-w-lg mx-auto mb-12">Family, close friends, and kindred spirits who have shared in our celebrations and supported our journey.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div class="bg-editorial-card p-6 border border-editorial-border">
+                            <h3 class="serif-title text-xl text-white mb-1">Family Gatherings</h3>
+                            <p class="text-editorial-muted text-xs">Warm dinners, festive holidays, and shared laughter across generations.</p>
+                        </div>
+                        <div class="bg-editorial-card p-6 border border-editorial-border">
+                            <h3 class="serif-title text-xl text-white mb-1">Closest Friends</h3>
+                            <p class="text-editorial-muted text-xs">Road trips, birthday bashes, and unforgettable weekend hangouts.</p>
+                        </div>
+                        <div class="bg-editorial-card p-6 border border-editorial-border">
+                            <h3 class="serif-title text-xl text-white mb-1">Kindred Spirits</h3>
+                            <p class="text-editorial-muted text-xs">People who brought warmth and inspiration into our lives.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 17: BUCKET LIST -->
+            <section id="bucketlist" class="py-24 px-4 sm:px-8 lg:px-16 bg-editorial-surface/30 border-b border-editorial-border">
+                <div class="max-w-5xl mx-auto">
+                    <div class="text-center mb-16">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Future Horizons</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">The Shared Bucket List</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="bg-editorial-card border border-editorial-border p-6 flex items-center justify-between">
+                            <span class="text-white text-sm font-medium">Northern Lights in Norway</span>
+                            <span class="text-[10px] uppercase tracking-widest text-editorial-accent bg-editorial-bg px-2.5 py-1 border border-editorial-border">Unchecked</span>
+                        </div>
+                        <div class="bg-editorial-card border border-editorial-border p-6 flex items-center justify-between">
+                            <span class="text-white text-sm font-medium">Hot air balloon ride in Cappadocia</span>
+                            <span class="text-[10px] uppercase tracking-widest text-editorial-accent bg-editorial-bg px-2.5 py-1 border border-editorial-border">Unchecked</span>
+                        </div>
+                        <div class="bg-editorial-card border border-editorial-border p-6 flex items-center justify-between">
+                            <span class="text-white text-sm font-medium">Road trip down the Pacific Coast Highway</span>
+                            <span class="text-[10px] uppercase tracking-widest text-editorial-terracotta bg-editorial-bg px-2.5 py-1 border border-editorial-border">Completed</span>
+                        </div>
+                        <div class="bg-editorial-card border border-editorial-border p-6 flex items-center justify-between">
+                            <span class="text-white text-sm font-medium">Writing a published book together</span>
+                            <span class="text-[10px] uppercase tracking-widest text-editorial-accent bg-editorial-bg px-2.5 py-1 border border-editorial-border">In Progress</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 18: THEN & NOW -->
+            <section id="thenandnow" class="py-24 px-4 sm:px-8 lg:px-16 border-b border-editorial-border">
+                <div class="max-w-6xl mx-auto">
+                    <div class="text-center mb-16">
+                        <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Evolution of Time</span>
+                        <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">Then & Now</h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="relative group overflow-hidden border border-editorial-border">
+                            <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80" alt="Then" class="w-full h-80 object-cover img-zoom">
+                            <div class="absolute bottom-4 left-4 bg-editorial-bg/80 modal-blur px-4 py-2 text-xs uppercase tracking-widest text-white">2023 — The Beginning</div>
+                        </div>
+                        <div class="relative group overflow-hidden border border-editorial-border">
+                            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=800&q=80" alt="Now" class="w-full h-80 object-cover img-zoom">
+                            <div class="absolute bottom-4 left-4 bg-editorial-bg/80 modal-blur px-4 py-2 text-xs uppercase tracking-widest text-white">2026 — Today</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- SECTION 19: THE ARCHIVE & SEARCH -->
+            <section id="archive" class="py-24 px-4 sm:px-8 lg:px-16 bg-editorial-surface/30">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.25em] text-editorial-terracotta font-semibold block mb-2">Complete Index</span>
+                            <h2 class="serif-title text-4xl sm:text-5xl font-light text-white">The Archive</h2>
+                        </div>
+                        <div class="mt-4 md:mt-0 flex items-center space-x-3">
+                            <input type="text" id="archive-filter" oninput="filterArchive()" placeholder="Filter memories..." 
+                                class="bg-editorial-bg border border-editorial-border px-4 py-2 text-sm text-white placeholder-editorial-muted focus:outline-none focus:border-editorial-terracotta">
+                        </div>
+                    </div>
+
+                    <div id="archive-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Dynamic items populated via CMS -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ==========================================
+             FOOTER
+             ========================================== -->
+        <footer class="bg-editorial-surface border-t border-editorial-border py-16 px-4 sm:px-8 lg:px-16 text-center">
+            <div class="max-w-4xl mx-auto space-y-6">
+                <h3 id="footer-brand" class="serif-title text-3xl text-white tracking-wider">THE CHRONICLE</h3>
+                <p class="text-xs uppercase tracking-[0.3em] text-editorial-muted">Documenting Our Lifetime Journey • Published on GitHub Pages</p>
+                <div class="flex justify-center space-x-6 text-sm text-editorial-muted pt-4">
+                    <button onclick="openCmsModal()" class="hover:text-white transition-colors uppercase tracking-widest text-xs">Add Memory</button>
+                    <span>•</span>
+                    <button onclick="openSettingsModal()" class="hover:text-white transition-colors uppercase tracking-widest text-xs">Settings</button>
+                    <span>•</span>
+                    <button onclick="lockMagazine()" class="hover:text-editorial-terracotta transition-colors uppercase tracking-widest text-xs">Lock Magazine</button>
+                </div>
+                <p class="text-[11px] text-editorial-muted/60 pt-8">© 2026 Aethercore Interactive. All rights reserved. Crafted with editorial precision.</p>
+            </div>
+        </footer>
+
+    </div><!-- /#magazine-app -->
+
+
+    <!-- ==========================================
+         MODALS (CMS, SETTINGS, SEARCH, LIGHTBOX)
+         ========================================== -->
+
+    <!-- CMS MODAL: ADD / EDIT MEMORY -->
+    <div id="cms-modal" class="fixed inset-0 z-50 bg-black/80 modal-blur hidden flex items-center justify-center p-4">
+        <div class="bg-editorial-surface border border-editorial-border max-w-xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeCmsModal()" class="absolute top-6 right-6 text-editorial-muted hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="serif-title text-2xl text-white mb-6">Add New Memory / Entry</h3>
+            
+            <form id="cms-form" onsubmit="handleCmsSubmit(event)" class="space-y-4">
+                <input type="hidden" id="cms-edit-id">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-editorial-muted mb-1">Title</label>
+                    <input type="text" id="cms-title" required class="w-full bg-editorial-bg border border-editorial-border px-4 py-2.5 text-white text-sm focus:outline-none focus:border-editorial-terracotta">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-editorial-muted mb-1">Category</label>
+                        <select id="cms-category" class="w-full bg-editorial-bg border border-editorial-border px-4 py-2.5 text-white text-sm focus:outline-none focus:border-editorial-terracotta">
+                            <option value="Travel">Travel Diary</option>
+                            <option value="Adventure">Adventure</option>
+                            <option value="Gallery">Gallery Photo</option>
+                            <option value="Celebration">Celebration</option>
+                            <option value="Date">Date Night</option>
+                            <option value="Milestone">Milestone</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-editorial-muted mb-1">Date</label>
+                        <input type="text" id="cms-date" placeholder="e.g. October 2026" class="w-full bg-editorial-bg border border-editorial-border px-4 py-2.5 text-white text-sm focus:outline-none focus:border-editorial-terracotta">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-editorial-muted mb-1">Image URL</label>
+                    <input type="url" id="cms-image" required placeholder="https://images.unsplash.com/..." class="w-full bg-editorial-bg border border-editorial-border px-4 py-2.5 text-white text-sm focus:outline-none focus:border-editorial-terracotta">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-editorial-muted mb-1">Description / Story</label>
+                    <textarea id="cms-desc" rows="4" required class="w-full bg-editorial-bg border border-editorial-border px-4 py-2.5 text-white text-sm focus:outline-none focus:border-editorial-terracotta"></textarea>
+                </div>
+                <button type="submit" class="w-full bg-editorial-terracotta hover:bg-[#b05c43] text-white py-3 text-xs uppercase tracking-[0.2em] font-semibold transition-colors">
+                    Save Memory Entry
+                </button>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="fixed inset-0 z-50 bg-black/80 modal-blur hidden flex items-center justify-center p-4">
+        <div class="bg-editorial-surface border border-editorial-border max-w-xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeSettingsModal()" class="absolute top-6 right-6 text-editorial-muted hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="serif-title text-2xl text-white mb-6">Magazine Settings</h3>
+            
+            <div class="space-y-6">
+                <!-- Change Title -->
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-editorial-muted mb-2">Magazine Title</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="settings-title-input" class="flex-grow bg-editorial-bg border border-editorial-border px-4 py-2.5 text-white text-sm focus:outline-none focus:border-editorial-terracotta">
+                        <button onclick="updateMagazineTitle()" class="bg-editorial-terracotta text-white px-5 py-2.5 text-xs uppercase tracking-widest font-semibold">Update</button>
+                    </div>
+                </div>
+
+                <hr class="border-editorial-border">
+
+                <!-- Change Password -->
+                <div class="space-y-3">
+                    <label class="block text-xs uppercase tracking-wider text-editorial-muted">Change Password</label>
+                    <input type="password" id="current-pwd" placeholder="Current Password" class="w-full bg-editorial-bg border border-editorial-border px-4 py-2.5 text-white text-sm focus:outline-none focus:border-editorial-terracotta">
+                    <input type="password" id="new-pwd" placeholder="New Password" class="w-full bg-editorial-bg border border-editorial-border px-4 py-2.5 text-white text-sm focus:outline-none focus:border-editorial-terracotta">
+                    <input type="password" id="confirm-pwd" placeholder="Confirm New Password" class="w-full bg-editorial-bg border border-editorial-border px-4 py-2.5 text-white text-sm focus:outline-none focus:border-editorial-terracotta">
+                    <button onclick="changePassword()" class="w-full bg-editorial-card border border-editorial-border hover:border-editorial-terracotta text-white py-2.5 text-xs uppercase tracking-widest font-semibold transition-colors">
+                        Update Password
+                    </button>
+                    <p id="pwd-msg" class="text-xs text-editorial-accent hidden"></p>
+                </div>
+
+                <hr class="border-editorial-border">
+
+                <!-- Backup & Reset -->
+                <div class="flex justify-between items-center pt-2">
+                    <button onclick="exportData()" class="text-xs uppercase tracking-widest text-editorial-muted hover:text-white underline">Export Data JSON</button>
+                    <button onclick="lockMagazine()" class="text-xs uppercase tracking-widest text-editorial-terracotta hover:underline">Lock Magazine Now</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- SEARCH MODAL -->
+    <div id="search-modal" class="fixed inset-0 z-50 bg-black/80 modal-blur hidden flex items-start justify-center pt-24 p-4">
+        <div class="bg-editorial-surface border border-editorial-border max-w-2xl w-full p-6 relative">
+            <button onclick="closeSearchModal()" class="absolute top-6 right-6 text-editorial-muted hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <div class="flex items-center space-x-3 border-b border-editorial-border pb-4 mb-6">
+                <i class="fa-solid fa-magnifying-glass text-editorial-terracotta"></i>
+                <input type="text" id="global-search-input" oninput="performGlobalSearch()" placeholder="Search across all memories, travels, and stories..." 
+                    class="w-full bg-transparent text-white placeholder-editorial-muted text-lg focus:outline-none">
+            </div>
+            <div id="search-results-container" class="space-y-4 max-h-[60vh] overflow-y-auto">
+                <p class="text-xs text-editorial-muted text-center py-4">Type a keyword to begin searching the archives...</p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- LIGHTBOX MODAL -->
+    <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/90 modal-blur hidden flex items-center justify-center p-4" onclick="closeLightbox()">
+        <div class="max-w-5xl w-full relative text-center" onclick="event.stopPropagation()">
+            <button onclick="closeLightbox()" class="absolute -top-12 right-0 text-editorial-muted hover:text-white text-2xl"><i class="fa-solid fa-xmark"></i></button>
+            <img id="lightbox-img" src="" alt="Lightbox View" class="max-h-[80vh] mx-auto border border-editorial-border object-contain">
+            <h4 id="lightbox-caption" class="serif-title text-xl text-white mt-4"></h4>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         JAVASCRIPT APPLICATION LOGIC
+         ========================================== -->
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        /* --- STATE & DEFAULT DATA --- */
+        const DEFAULT_PASSWORD = "Magazine@123";
+        
+        let magazineState = {
+            title: localStorage.getItem('mag_title') || "THE CHRONICLE",
+            password: localStorage.getItem('mag_pwd') || DEFAULT_PASSWORD,
+            isLoggedIn: sessionStorage.getItem('mag_logged_in') === 'true',
+            entries: JSON.parse(localStorage.getItem('mag_entries')) || [
+                { id: 1, title: "Parisian Evenings", category: "Travel", date: "Autumn 2025", image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80", desc: "Cafes along the Seine, midnight strolls past glowing architecture." },
+                { id: 2, title: "Tropical Sanctuaries", category: "Travel", date: "Summer 2025", image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=800&q=80", desc: "Emerald rice terraces, torrential monsoon rains, and quiet villa mornings." },
+                { id: 3, title: "Mist & Mountain Peaks", category: "Travel", date: "Winter 2024", image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80", desc: "Crisp alpine air, hot chocolate by the fireplace, and starlit night skies." },
+                { id: 4, title: "Sunset Road Trip", category: "Adventure", date: "May 2025", image: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=800&q=80", desc: "Driving 4 hours just to watch sunrise at the coast with windows down." },
+                { id: 5, title: "Anniversary Dinner", category: "Celebration", date: "January 2026", image: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80", desc: "Candlelit celebration of our journey together with custom dessert." }
+            ]
+        };
+
+        const mapCoordinates = [
+            { lat: 48.8566, lng: 2.3522, title: "Paris, France" },
+            { lat: -8.3405, lng: 115.0920, title: "Bali, Indonesia" },
+            { lat: 46.2044, lng: 6.1432, title: "Geneva, Switzerland" },
+            { lat: 13.0827, lng: 80.2707, title: "Chennai, India" }
+        ];
+
+        /* --- INITIALIZATION --- */
+        document.addEventListener('DOMContentLoaded', () => {
+            applyMagazineTitle(magazineState.title);
+            if (magazineState.isLoggedIn) {
+                unlockAppUI();
+            }
+            renderGallery();
+            renderArchive();
+            initLeafletMap();
+
+            // Reading progress indicator
+            window.addEventListener('scroll', () => {
+                const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const progress = (window.scrollY / totalHeight) * 100;
+                document.getElementById('read-progress').style.width = progress + '%';
+            });
+        });
+
+        /* --- AUTHENTICATION --- */
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('auth-password');
+            const eyeIcon = document.getElementById('eye-icon');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                eyeIcon.className = "fa-regular fa-eye-slash";
+            } else {
+                pwdInput.type = 'password';
+                eyeIcon.className = "fa-regular fa-eye";
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const enteredPwd = document.getElementById('auth-password').value;
+            const errEl = document.getElementById('auth-error');
+
+            if (enteredPwd === magazineState.password) {
+                magazineState.isLoggedIn = true;
+                sessionStorage.setItem('mag_logged_in', 'true');
+                unlockAppUI();
+            } else {
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function unlockAppUI() {
+            const authScreen = document.getElementById('auth-screen');
+            const magApp = document.getElementById('magazine-app');
+            authScreen.classList.add('opacity-0');
+            setTimeout(() => {
+                authScreen.classList.add('hidden');
+                magApp.classList.remove('hidden');
+                window.dispatchEvent(new Event('resize')); // Fix map sizing
+            }, 500);
+        }
+
+        function lockMagazine() {
+            magazineState.isLoggedIn = false;
+            sessionStorage.removeItem('mag_logged_in');
+            window.location.reload();
+        }
+
+
+        /* --- UI TITLE & SETTINGS --- */
+        function applyMagazineTitle(title) {
+            document.getElementById('page-title').innerText = title + " — Digital Monograph";
+            document.getElementById('brand-title').innerText = title;
+            document.getElementById('footer-brand').innerText = title;
+            document.getElementById('auth-magazine-title').innerText = title;
+            document.getElementById('cover-main-title').innerHTML = title + ", <br><span class='italic text-editorial-terracotta font-serif'>One Masterpiece.</span>";
+        }
+
+        function updateMagazineTitle() {
+            const newTitle = document.getElementById('settings-title-input').value.trim();
+            if (newTitle) {
+                magazineState.title = newTitle;
+                localStorage.setItem('mag_title', newTitle);
+                applyMagazineTitle(newTitle);
+                closeSettingsModal();
+            }
+        }
+
+        function changePassword() {
+            const current = document.getElementById('current-pwd').value;
+            const newPwd = document.getElementById('new-pwd').value;
+            const confirmPwd = document.getElementById('confirm-pwd').value;
+            const msgEl = document.getElementById('pwd-msg');
+
+            if (current !== magazineState.password) {
+                msgEl.innerText = "Incorrect current password.";
+                msgEl.classList.remove('hidden');
+                return;
+            }
+            if (newPwd.length < 6) {
+                msgEl.innerText = "New password must be at least 6 characters.";
+                msgEl.classList.remove('hidden');
+                return;
+            }
+            if (newPwd !== confirmPwd) {
+                msgEl.innerText = "New passwords do not match.";
+                msgEl.classList.remove('hidden');
+                return;
+            }
+
+            magazineState.password = newPwd;
+            localStorage.setItem('mag_pwd', newPwd);
+            msgEl.innerText = "Password successfully updated!";
+            msgEl.classList.remove('hidden');
+            setTimeout(() => { closeSettingsModal(); msgEl.classList.add('hidden'); }, 1500);
+        }
+
+
+        /* --- MODALS CONTROLS --- */
+        function openCmsModal() {
+            document.getElementById('cms-modal').classList.remove('hidden');
+        }
+        function closeCmsModal() {
+            document.getElementById('cms-modal').classList.add('hidden');
+            document.getElementById('cms-form').reset();
+            document.getElementById('cms-edit-id').value = "";
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settings-title-input').value = magazineState.title;
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+        function closeSettingsModal() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+
+        function openSearchModal() {
+            document.getElementById('search-modal').classList.remove('hidden');
+            document.getElementById('global-search-input').focus();
+        }
+        function closeSearchModal() {
+            document.getElementById('search-modal').classList.add('hidden');
+        }
+
+        function toggleMobileNav() {
+            const nav = document.getElementById('mobile-nav');
+            nav.classList.toggle('hidden');
+        }
+
+        function openLightbox(imgSrc, caption) {
+            document.getElementById('lightbox-img').src = imgSrc;
+            document.getElementById('lightbox-caption').innerText = caption;
+            document.getElementById('lightbox-modal').classList.remove('hidden');
+        }
+        function closeLightbox() {
+            document.getElementById('lightbox-modal').classList.add('hidden');
+        }
+
+
+        /* --- CMS & PERSISTENT STORAGE --- */
+        function handleCmsSubmit(e) {
+            e.preventDefault();
+            const editId = document.getElementById('cms-edit-id').value;
+            const title = document.getElementById('cms-title').value;
+            const category = document.getElementById('cms-category').value;
+            const date = document.getElementById('cms-date').value;
+            const image = document.getElementById('cms-image').value;
+            const desc = document.getElementById('cms-desc').value;
+
+            if (editId) {
+                // Edit existing
+                const index = magazineState.entries.findIndex(item => item.id == editId);
+                if (index !== -1) {
+                    magazineState.entries[index] = { id: Number(editId), title, category, date, image, desc };
+                }
+            } else {
+                // Add new
+                const newEntry = {
+                    id: Date.now(),
+                    title, category, date, image, desc
+                };
+                magazineState.entries.unshift(newEntry);
+            }
+
+            localStorage.setItem('mag_entries', JSON.stringify(magazineState.entries));
+            renderGallery();
+            renderArchive();
+            closeCmsModal();
+        }
+
+        function deleteEntry(id) {
+            if (confirm("Are you sure you want to delete this memory entry?")) {
+                magazineState.entries = magazineState.entries.filter(item => item.id !== id);
+                localStorage.setItem('mag_entries', JSON.stringify(magazineState.entries));
+                renderGallery();
+                renderArchive();
+            }
+        }
+
+        function editEntry(id) {
+            const item = magazineState.entries.find(e => e.id === id);
+            if (item) {
+                document.getElementById('cms-edit-id').value = item.id;
+                document.getElementById('cms-title').value = item.title;
+                document.getElementById('cms-category').value = item.category;
+                document.getElementById('cms-date').value = item.date;
+                document.getElementById('cms-image').value = item.image;
+                document.getElementById('cms-desc').value = item.desc;
+                openCmsModal();
+            }
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(magazineState));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "chronicle_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+
+        /* --- RENDERING GALLERIES & ARCHIVES --- */
+        function renderGallery() {
+            const grid = document.getElementById('dynamic-gallery-grid');
+            grid.innerHTML = "";
+
+            magazineState.entries.slice(0, 6).forEach(item => {
+                const card = document.createElement('div');
+                card.className = "group bg-editorial-surface border border-editorial-border overflow-hidden relative cursor-pointer";
+                card.onclick = () => openLightbox(item.image, item.title);
+                card.innerHTML = `
+                    <div class="h-64 overflow-hidden relative">
+                        <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover img-zoom">
+                        <div class="absolute top-4 left-4 bg-editorial-bg/80 modal-blur px-3 py-1 text-[10px] uppercase tracking-widest text-editorial-accent">${item.category}</div>
+                    </div>
+                    <div class="p-5 flex justify-between items-start">
+                        <div>
+                            <span class="text-[11px] text-editorial-muted uppercase tracking-wider block mb-1">${item.date}</span>
+                            <h4 class="serif-title text-xl text-white">${item.title}</h4>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderArchive() {
+            const list = document.getElementById('archive-list');
+            list.innerHTML = "";
+
+            magazineState.entries.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-editorial-card border border-editorial-border p-6 flex flex-col justify-between group hover:border-editorial-terracotta/60 transition-colors";
+                card.innerHTML = `
+                    <div>
+                        <div class="h-48 overflow-hidden mb-4 relative cursor-pointer" onclick="openLightbox('${item.image}', '${item.title}')">
+                            <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover img-zoom">
+                            <span class="absolute top-3 left-3 bg-editorial-bg/80 modal-blur px-2.5 py-0.5 text-[10px] uppercase tracking-widest text-editorial-accent">${item.category}</span>
+                        </div>
+                        <span class="text-[11px] text-editorial-muted uppercase tracking-widest block mb-1">${item.date}</span>
+                        <h4 class="serif-title text-2xl text-white mb-2">${item.title}</h4>
+                        <p class="text-editorial-muted text-xs leading-relaxed mb-4">${item.desc}</p>
+                    </div>
+                    <div class="flex justify-between items-center pt-4 border-t border-editorial-border/40 text-xs">
+                        <button onclick="editEntry(${item.id})" class="text-editorial-accent hover:underline uppercase tracking-wider">Edit</button>
+                        <button onclick="deleteEntry(${item.id})" class="text-editorial-terracotta hover:underline uppercase tracking-wider">Delete</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function filterArchive() {
+            const query = document.getElementById('archive-filter').value.toLowerCase();
+            const list = document.getElementById('archive-list');
+            list.innerHTML = "";
+
+            const filtered = magazineState.entries.filter(item => 
+                item.title.toLowerCase().includes(query) || 
+                item.desc.toLowerCase().includes(query) || 
+                item.category.toLowerCase().includes(query) ||
+                item.date.toLowerCase().includes(query)
+            );
+
+            filtered.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-editorial-card border border-editorial-border p-6 flex flex-col justify-between";
+                card.innerHTML = `
+                    <div>
+                        <div class="h-48 overflow-hidden mb-4 relative cursor-pointer" onclick="openLightbox('${item.image}', '${item.title}')">
+                            <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover img-zoom">
+                            <span class="absolute top-3 left-3 bg-editorial-bg/80 modal-blur px-2.5 py-0.5 text-[10px] uppercase tracking-widest text-editorial-accent">${item.category}</span>
+                        </div>
+                        <span class="text-[11px] text-editorial-muted uppercase tracking-widest block mb-1">${item.date}</span>
+                        <h4 class="serif-title text-2xl text-white mb-2">${item.title}</h4>
+                        <p class="text-editorial-muted text-xs leading-relaxed mb-4">${item.desc}</p>
+                    </div>
+                    <div class="flex justify-between items-center pt-4 border-t border-editorial-border/40 text-xs">
+                        <button onclick="editEntry(${item.id})" class="text-editorial-accent hover:underline uppercase tracking-wider">Edit</button>
+                        <button onclick="deleteEntry(${item.id})" class="text-editorial-terracotta hover:underline uppercase tracking-wider">Delete</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function performGlobalSearch() {
+            const query = document.getElementById('global-search-input').value.toLowerCase();
+            const container = document.getElementById('search-results-container');
+            container.innerHTML = "";
+
+            if (!query) {
+                container.innerHTML = `<p class="text-xs text-editorial-muted text-center py-4">Type a keyword to begin searching the archives...</p>`;
+                return;
+            }
+
+            const results = magazineState.entries.filter(item => 
+                item.title.toLowerCase().includes(query) || 
+                item.desc.toLowerCase().includes(query) ||
+                item.category.toLowerCase().includes(query)
+            );
+
+            if (results.length === 0) {
+                container.innerHTML = `<p class="text-xs text-editorial-muted text-center py-4">No matching memories found.</p>`;
+                return;
+            }
+
+            results.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "p-4 bg-editorial-bg border border-editorial-border flex items-center space-x-4 cursor-pointer hover:border-editorial-terracotta";
+                div.onclick = () => { closeSearchModal(); openLightbox(item.image, item.title); };
+                div.innerHTML = `
+                    <img src="${item.image}" class="w-16 h-16 object-cover">
+                    <div>
+                        <span class="text-[10px] uppercase tracking-widest text-editorial-accent">${item.category} • ${item.date}</span>
+                        <h4 class="serif-title text-lg text-white">${item.title}</h4>
+                        <p class="text-editorial-muted text-xs line-clamp-1">${item.desc}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+
+        /* --- LEAFLET MAP INITIALIZATION --- */
+        function initLeafletMap() {
+            const map = L.map('leaflet-map').setView([20.0, 0.0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            mapCoordinates.forEach(loc => {
+                L.marker([loc.lat, loc.lng]).addTo(map)
+                    .bindPopup(`<b style="font-family:Newsreader; font-size:14px;">${loc.title}</b><br><span style="font-size:11px;">Our shared destination</span>`);
+            });
+        }
+    </script>
+</body>
+</html>
